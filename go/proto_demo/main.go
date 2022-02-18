@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"google.golang.org/protobuf/proto"
 	"io"
 	"io/ioutil"
 	"log"
 	"net"
 	"os"
+	"protobuf_demo_server/my_message"
 )
 
 type User struct {
@@ -51,10 +53,21 @@ func writeToDisk(message *Message) error {
 	if err != nil {
 		return err
 	}
-	encoder := json.NewEncoder(file)
-	err = encoder.Encode(message)
+	msgAsProtobuf := my_message.Message{
+		Id:      int64(message.Id),
+		Content: message.Content,
+		Sender:  &my_message.User{
+			Id:   int64(message.Sender.Id),
+			Name: message.Sender.Name,
+		},
+	}
+	buf, err := proto.Marshal(&msgAsProtobuf)
 	if err != nil {
-		return fmt.Errorf("error decoding: %v\n", err)
+		return fmt.Errorf("error marshaling: %v\n", err)
+	}
+	_, err = file.Write(buf)
+	if err != nil {
+		return fmt.Errorf("error writing: %v\n", err)
 	}
 	return nil
 }
